@@ -5,8 +5,8 @@ console.log("[db] CWD =", process.cwd());
 console.log("[db] TURSO_DATABASE_URL =", process.env.TURSO_DATABASE_URL);
 
 export const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
+  url: process.env.TURSO_DATABASE_URL || "libsql://dummy-url-for-build.turso.io",
+  authToken: process.env.TURSO_AUTH_TOKEN || "dummy-token",
 });
 
 export { leadStages };
