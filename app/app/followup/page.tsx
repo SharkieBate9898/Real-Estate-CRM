@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
 import { listLeads } from "@/lib/leads";
+import { getCurrentUserContext, getVisibleOwnerIds } from "@/lib/org";
 import FollowUpGenerator from "@/components/FollowUpGenerator";
 
-export default function FollowUpPage() {
-  const user = getSessionUser();
-  if (!user) {
+export default async function FollowUpPage() {
+  const ctx = await getCurrentUserContext();
+  if (!ctx) {
     redirect("/login");
   }
-  const leads = listLeads({ userId: user.id });
+  const ownerIds = await getVisibleOwnerIds(ctx);
+  const leads = await listLeads({ orgId: ctx.orgId, owner_user_ids: ownerIds ?? undefined });
 
   return (
     <div className="space-y-6">

@@ -5,6 +5,10 @@ export const followUpTemplates: Record<LeadStage, string[]> = {
     "Hi {name}, it was great connecting recently! Would you like to tour any listings this week?",
     "Hi {name}, I pulled a few homes that match your criteria. Want me to send them over?",
   ],
+  contacted: [
+    "Hi {name}, great connecting with you today. What's the next best step for you?",
+    "Hi {name}, thanks for the chat. Should we schedule a quick follow-up to narrow down options?",
+  ],
   warm: [
     "Hi {name}, checking in on your home search. Any changes to your must-haves?",
     "Hi {name}, I can schedule a quick call to refine your budget and timeline. Interested?",

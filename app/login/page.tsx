@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useFormState } from "react-dom";
 import { handleAuth } from "@/app/login/actions";
@@ -41,9 +41,23 @@ export default function LoginPage() {
               required
               minLength={6}
               className="mt-2 w-full"
-              placeholder="••••••••"
             />
           </div>
+          {mode === "login" ? (
+            <div className="space-y-1">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  name="rememberMe"
+                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                />
+                Stay logged in
+              </label>
+              <p className="text-xs text-slate-500">
+                Keeps you signed in on this device.
+              </p>
+            </div>
+          ) : null}
           {state?.error ? (
             <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
               {state.error}
@@ -72,3 +86,6 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+

@@ -1,22 +1,20 @@
 import bcrypt from "bcrypt";
-import { getDb } from "../lib/db";
-import fs from "fs";
-import path from "path";
+import { db } from "../lib/db";
 
 async function seed() {
-  const db = getDb();
   const passwordHash = await bcrypt.hash("password123", 12);
 
-  db.prepare("DELETE FROM sessions").run();
-  db.prepare("DELETE FROM interactions").run();
-  db.prepare("DELETE FROM leads").run();
-  db.prepare("DELETE FROM users").run();
+  await db.execute({ sql: "DELETE FROM sessions", args: [] });
+  await db.execute({ sql: "DELETE FROM interactions", args: [] });
+  await db.execute({ sql: "DELETE FROM leads", args: [] });
+  await db.execute({ sql: "DELETE FROM users", args: [] });
 
-  const user = db
-    .prepare("INSERT INTO users (email, password_hash) VALUES (?, ?)")
-    .run("demo@mini-crm.local", passwordHash);
+  const userResult = await db.execute({
+    sql: "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+    args: ["demo@mini-crm.local", passwordHash],
+  });
 
-  const userId = Number(user.lastInsertRowid);
+  const userId = Number(userResult.lastInsertRowid);
   const now = new Date();
 
   const leads = [
@@ -55,64 +53,66 @@ async function seed() {
     },
   ];
 
-  const insertLead = db.prepare(
-    `INSERT INTO leads
-      (user_id, name, phone, email, source, stage, last_contacted_at, next_action_at, next_action_text, notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  );
-
-  const leadIds = leads.map((lead) => {
+  const leadIds: number[] = [];
+  for (const lead of leads) {
     const createdAt = new Date().toISOString();
-    const result = insertLead.run(
-      userId,
-      lead.name,
-      lead.phone,
-      lead.email,
-      lead.source,
-      lead.stage,
-      lead.last_contacted_at,
-      lead.next_action_at,
-      lead.next_action_text,
-      lead.notes,
-      createdAt,
-      createdAt
-    );
-    return Number(result.lastInsertRowid);
+    const result = await db.execute({
+      sql: `INSERT INTO leads
+      (user_id, name, phone, email, source, stage, last_contacted_at, next_action_at, next_action_text, notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        userId,
+        lead.name,
+        lead.phone,
+        lead.email,
+        lead.source,
+        lead.stage,
+        lead.last_contacted_at,
+        lead.next_action_at,
+        lead.next_action_text,
+        lead.notes,
+        createdAt,
+        createdAt,
+      ],
+    });
+    leadIds.push(Number(result.lastInsertRowid));
+  }
+
+  await db.execute({
+    sql: `INSERT INTO interactions (lead_id, type, content, occurred_at, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    args: [
+      leadIds[0],
+      "call",
+      "Discussed timeline and preferred neighborhoods.",
+      new Date(now.getTime() - 2 * 86400000).toISOString(),
+      new Date().toISOString(),
+    ],
   });
 
-  const insertInteraction = db.prepare(
-    `INSERT INTO interactions (lead_id, type, content, occurred_at, created_at)
-     VALUES (?, ?, ?, ?, ?)`
-  );
+  await db.execute({
+    sql: `INSERT INTO interactions (lead_id, type, content, occurred_at, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    args: [
+      leadIds[1],
+      "text",
+      "Sent updated tour schedule for Saturday.",
+      new Date(now.getTime() - 1 * 86400000).toISOString(),
+      new Date().toISOString(),
+    ],
+  });
 
-  insertInteraction.run(
-    leadIds[0],
-    "call",
-    "Discussed timeline and preferred neighborhoods.",
-    new Date(now.getTime() - 2 * 86400000).toISOString(),
-    new Date().toISOString()
-  );
-
-  insertInteraction.run(
-    leadIds[1],
-    "text",
-    "Sent updated tour schedule for Saturday.",
-    new Date(now.getTime() - 1 * 86400000).toISOString(),
-    new Date().toISOString()
-  );
-
-  insertInteraction.run(
-    leadIds[2],
-    "email",
-    "Shared offer draft and next steps.",
-    new Date(now.getTime() - 1 * 86400000).toISOString(),
-    new Date().toISOString()
-  );
-
-  const dataDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+  await db.execute({
+    sql: `INSERT INTO interactions (lead_id, type, content, occurred_at, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    args: [
+      leadIds[2],
+      "email",
+      "Shared offer draft and next steps.",
+      new Date(now.getTime() - 1 * 86400000).toISOString(),
+      new Date().toISOString(),
+    ],
+  });
 
   console.log("Seed complete. Demo user: demo@mini-crm.local / password123");
 }

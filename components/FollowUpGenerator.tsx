@@ -40,6 +40,13 @@ export default function FollowUpGenerator({ leads }: Props) {
     });
   };
 
+  const canSendEmail = Boolean(selectedLead?.email && message.trim());
+  const mailtoHref = selectedLead?.email
+    ? `mailto:${selectedLead.email}?subject=${encodeURIComponent(
+        `Follow up - ${selectedLead.name}`
+      )}&body=${encodeURIComponent(message)}`
+    : "#";
+
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-6">
       <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
@@ -94,6 +101,20 @@ export default function FollowUpGenerator({ leads }: Props) {
             >
               Copy
             </button>
+            <a
+              href={mailtoHref}
+              className={`rounded-md border px-3 py-2 text-sm ${
+                canSendEmail
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-300 text-slate-400"
+              }`}
+              aria-disabled={!canSendEmail}
+              onClick={(event) => {
+                if (!canSendEmail) event.preventDefault();
+              }}
+            >
+              Send Email
+            </a>
             <button
               type="button"
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"

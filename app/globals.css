@@ -2,18 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+html.theme-dark {
+  color-scheme: dark;
+}
+
+html.theme-light {
   color-scheme: light;
 }
 
-body {
+html.theme-dark body {
+  @apply bg-slate-950 text-slate-100;
+}
+
+html.theme-light body {
   @apply bg-slate-50 text-slate-900;
 }
 
-input, select, textarea {
-  @apply border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400;
+html.theme-dark input,
+html.theme-dark select,
+html.theme-dark textarea {
+  @apply border border-slate-700 rounded-md px-3 py-2 bg-slate-900/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-600;
+}
+
+html.theme-light input,
+html.theme-light select,
+html.theme-light textarea {
+  @apply border border-slate-300 rounded-md px-3 py-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400;
 }
 
 button {
   @apply rounded-md;
+}
+
+html.theme-dark .bg-white {
+  background-color: rgb(15 23 42 / 0.7);
+}
+html.theme-dark .bg-slate-50 {
+  background-color: rgb(2 6 23);
+}
+html.theme-dark .bg-slate-200 {
+  background-color: rgb(30 41 59);
+}
+html.theme-dark .border-slate-200 {
+  border-color: rgb(30 41 59);
+}
+html.theme-dark .border-slate-300 {
+  border-color: rgb(51 65 85);
+}
+html.theme-dark .text-slate-900 {
+  color: rgb(241 245 249);
+}
+html.theme-dark .text-slate-800 {
+  color: rgb(226 232 240);
+}
+html.theme-dark .text-slate-700 {
+  color: rgb(203 213 225);
+}
+html.theme-dark .text-slate-600 {
+  color: rgb(148 163 184);
+}
+html.theme-dark .text-slate-500 {
+  color: rgb(148 163 184);
+}
+
+html.theme-light .bg-slate-950,
+html.theme-light .bg-slate-900,
+html.theme-light .bg-slate-900\/70,
+html.theme-light .bg-slate-900\/60,
+html.theme-light .bg-slate-800 {
+  background-color: white;
+}
+html.theme-light .border-slate-800 {
+  border-color: rgb(226 232 240);
+}
+html.theme-light .border-slate-700 {
+  border-color: rgb(203 213 225);
+}
+html.theme-light .text-slate-100 {
+  color: rgb(15 23 42);
+}
+html.theme-light .text-slate-200 {
+  color: rgb(30 41 59);
+}
+html.theme-light .text-slate-300 {
+  color: rgb(51 65 85);
+}
+html.theme-light .text-white {
+  color: rgb(15 23 42);
+}
+html.theme-light .from-slate-900 {
+  --tw-gradient-from: #ffffff;
+  --tw-gradient-to: rgb(255 255 255 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+html.theme-light .to-slate-950 {
+  --tw-gradient-to: #f8fafc;
 }

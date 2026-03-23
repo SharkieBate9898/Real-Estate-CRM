@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { getDb } from "@/lib/db";
+import { db } from "@/lib/db";
 import { createSession, hashPassword, verifyPassword } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -11,7 +11,12 @@ const authSchema = z.object({
   mode: z.enum(["login", "signup"]),
 });
 
-export async function handleAuth(formData: FormData) {
+type AuthState = { error?: string };
+
+export async function handleAuth(
+  _prevState: AuthState | void,
+  formData: FormData
+): Promise<AuthState> {
   const values = authSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -23,37 +28,41 @@ export async function handleAuth(formData: FormData) {
   }
 
   const { email, password, mode } = values.data;
-  const db = getDb();
+  const rememberMe = formData.get("rememberMe") === "on";
 
   if (mode === "signup") {
-    const existing = db
-      .prepare("SELECT id FROM users WHERE email = ?")
-      .get(email) as { id: number } | undefined;
-    if (existing) {
+    const existing = await db.execute({
+      sql: "SELECT id FROM users WHERE email = ?",
+      args: [email],
+    });
+
+    if (existing.rows[0]) {
       return { error: "Account already exists. Please log in." };
     }
 
     const hash = await hashPassword(password);
-    const result = db
-      .prepare("INSERT INTO users (email, password_hash) VALUES (?, ?)")
-      .run(email, hash);
-    createSession(Number(result.lastInsertRowid));
+    const result = await db.execute({
+      sql: "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+      args: [email, hash],
+    });
+
+    await createSession(Number(result.lastInsertRowid), { rememberMe });
     redirect("/app");
   }
 
-  const user = db
-    .prepare("SELECT id, password_hash FROM users WHERE email = ?")
-    .get(email) as { id: number; password_hash: string } | undefined;
+  const userResult = await db.execute({
+    sql: "SELECT id, password_hash FROM users WHERE email = ?",
+    args: [email],
+  });
+  const row = userResult.rows[0];
 
-  if (!user) {
-    return { error: "Invalid email or password." };
-  }
+  if (!row) return { error: "Invalid email or password." };
 
-  const valid = await verifyPassword(password, user.password_hash);
-  if (!valid) {
-    return { error: "Invalid email or password." };
-  }
+  const userId = Number(row.id);
+  const passwordHash = String(row.password_hash ?? "");
+  const valid = await verifyPassword(password, passwordHash);
+  if (!valid) return { error: "Invalid email or password." };
 
-  createSession(user.id);
+  await createSession(userId, { rememberMe });
   redirect("/app");
 }

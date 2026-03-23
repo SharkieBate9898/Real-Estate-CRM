@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getTemplate } from "@/lib/followup";
-import { LeadStage, leadStages } from "@/lib/db";
+import { type LeadStage, leadStages } from "@/lib/leadStages";
 
 const requestSchema = z.object({
   name: z.string(),
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
+    console.warn("[followup] Missing OPENAI_API_KEY, falling back to template.");
     return NextResponse.json({ message: fallback, source: "template" });
   }
 
@@ -50,13 +51,25 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      return NextResponse.json({ message: fallback, source: "template" });
+      const body = await response.text();
+      console.error(
+        `[followup] OpenAI error ${response.status} ${response.statusText}: ${body}`
+      );
+      return NextResponse.json({
+        message: fallback,
+        source: "template",
+        debug:
+          process.env.NODE_ENV !== "production"
+            ? `OpenAI error ${response.status} ${response.statusText}`
+            : undefined,
+      });
     }
 
     const data = await response.json();
     const message = data?.choices?.[0]?.message?.content?.trim();
     return NextResponse.json({ message: message || fallback, source: "ai" });
   } catch (error) {
+    console.error("[followup] OpenAI request failed:", error);
     return NextResponse.json({ message: fallback, source: "template" });
   }
 }

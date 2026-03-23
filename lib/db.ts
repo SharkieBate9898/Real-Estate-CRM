@@ -1,63 +1,24 @@
-import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@libsql/client/web";
+import { type LeadStage, leadStages } from "@/lib/leadStages";
 
-const dataDir = path.join(process.cwd(), "data");
-const dbPath = path.join(dataDir, "app.db");
-const schemaPath = path.join(process.cwd(), "db", "schema.sql");
+console.log("[db] CWD =", process.cwd());
+console.log("[db] TURSO_DATABASE_URL =", process.env.TURSO_DATABASE_URL);
 
-let db: Database.Database | null = null;
+export const db = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
+});
 
-function ensureDatabase() {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  const instance = new Database(dbPath);
-  instance.pragma("foreign_keys = ON");
+export { leadStages };
+export type { LeadStage };
 
-  const hasUsersTable = instance
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-    .get();
-
-  if (!hasUsersTable) {
-    const schema = fs.readFileSync(schemaPath, "utf8");
-    instance.exec(schema);
-  }
-
-  return instance;
-}
-
-export function getDb() {
-  if (!db) {
-    db = ensureDatabase();
-  }
-  return db;
-}
-
-export type LeadStage =
-  | "new"
-  | "warm"
-  | "touring"
-  | "offer"
-  | "under_contract"
-  | "closed";
-
-export type InteractionType = "call" | "text" | "email" | "dm" | "tour" | "note";
-
-export const leadStages: LeadStage[] = [
-  "new",
-  "warm",
-  "touring",
-  "offer",
-  "under_contract",
-  "closed",
-];
-
-export const interactionTypes: InteractionType[] = [
+export const interactionTypes = [
   "call",
   "text",
   "email",
   "dm",
   "tour",
   "note",
-];
+] as const;
+
+export type InteractionType = (typeof interactionTypes)[number];
