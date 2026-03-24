@@ -1,10 +1,11 @@
 import { createClient } from "@libsql/client";
 import { type LeadStage, leadStages } from "@/lib/leadStages";
 
-console.log("[db] CWD =", process.cwd());
-console.log("[db] TURSO_DATABASE_URL =", process.env.TURSO_DATABASE_URL);
-
 const customFetch = async (...args: Parameters<typeof fetch>) => {
+  const url = args[0].toString();
+  if (url.includes("dummy-url")) {
+    throw new Error("Missing Vercel Environment Variables: Please set TURSO_DATABASE_URL in Vercel Settings.");
+  }
   const response = await fetch(...args);
   if (response.body && typeof response.body.cancel !== "function") {
     response.body.cancel = async () => {};
