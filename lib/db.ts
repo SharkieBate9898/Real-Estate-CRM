@@ -1,4 +1,4 @@
-import { createClient } from "@libsql/client/web";
+import { createClient } from "@libsql/client";
 import { type LeadStage, leadStages } from "@/lib/leadStages";
 
 console.log("[db] CWD =", process.cwd());
