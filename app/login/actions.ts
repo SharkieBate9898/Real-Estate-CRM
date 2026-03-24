@@ -30,39 +30,55 @@ export async function handleAuth(
   const { email, password, mode } = values.data;
   const rememberMe = formData.get("rememberMe") === "on";
 
-  if (mode === "signup") {
-    const existing = await db.execute({
-      sql: "SELECT id FROM users WHERE email = ?",
-      args: [email],
-    });
+  let redirectToApp = false;
 
-    if (existing.rows[0]) {
-      return { error: "Account already exists. Please log in." };
+  try {
+    if (mode === "signup") {
+      const existing = await db.execute({
+        sql: "SELECT id FROM users WHERE email = ?",
+        args: [email],
+      });
+
+      if (existing.rows[0]) {
+        return { error: "Account already exists. Please log in." };
+      }
+
+      const hash = await hashPassword(password);
+      const result = await db.execute({
+        sql: "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+        args: [email, hash],
+      });
+
+      await createSession(Number(result.lastInsertRowid), { rememberMe });
+      redirectToApp = true;
+    } else {
+      const userResult = await db.execute({
+        sql: "SELECT id, password_hash FROM users WHERE email = ?",
+        args: [email],
+      });
+      const row = userResult.rows[0];
+
+      if (!row) return { error: "Invalid email or password." };
+
+      const userId = Number(row.id);
+      const passwordHash = String(row.password_hash ?? "");
+      const valid = await verifyPassword(password, passwordHash);
+      if (!valid) return { error: "Invalid email or password." };
+
+      await createSession(userId, { rememberMe });
+      redirectToApp = true;
     }
+  } catch (err: any) {
+    console.error("Login Server Action Error:", err);
+    if (err.message && (err.message.includes("fetch") || err.message.includes("dummy") || err.message.includes("URL"))) {
+      return { error: "Database connection failed. Ensure TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are set in Vercel Environment Variables." };
+    }
+    return { error: "Server Error: " + (err.message || "Unknown error occurred") };
+  }
 
-    const hash = await hashPassword(password);
-    const result = await db.execute({
-      sql: "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-      args: [email, hash],
-    });
-
-    await createSession(Number(result.lastInsertRowid), { rememberMe });
+  if (redirectToApp) {
     redirect("/app");
   }
 
-  const userResult = await db.execute({
-    sql: "SELECT id, password_hash FROM users WHERE email = ?",
-    args: [email],
-  });
-  const row = userResult.rows[0];
-
-  if (!row) return { error: "Invalid email or password." };
-
-  const userId = Number(row.id);
-  const passwordHash = String(row.password_hash ?? "");
-  const valid = await verifyPassword(password, passwordHash);
-  if (!valid) return { error: "Invalid email or password." };
-
-  await createSession(userId, { rememberMe });
-  redirect("/app");
+  return { error: "Unexpected state." };
 }
